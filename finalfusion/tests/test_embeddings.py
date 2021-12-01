@@ -89,6 +89,13 @@ def test_embeddings_pq_mmap(similarity_fifu, similarity_pq_mmap):
         ), "Embedding and quantized embedding mismatch"
 
 
+def test_can_read_floret(embeddings_floret_check, embeddings_floret_text):
+    for embed in embeddings_floret_check:
+        assert numpy.allclose(
+            embeddings_floret_text[embed.word], embed.embedding, atol=1e-4
+        ), "Floret and floret check embeddings mismatch"
+
+
 def test_embeddings_with_norms_oov(embeddings_fifu):
     assert embeddings_fifu.embedding_with_norm("Something out of vocabulary") is None
 

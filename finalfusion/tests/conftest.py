@@ -1,7 +1,6 @@
 import os
 
 import finalfusion
-import numpy
 import pytest
 
 
@@ -18,6 +17,20 @@ def embeddings_fifu(tests_root):
 @pytest.fixture
 def embeddings_text(tests_root):
     yield finalfusion.Embeddings.read_text(os.path.join(tests_root, "embeddings.txt"))
+
+
+@pytest.fixture
+def embeddings_floret_check(tests_root):
+    yield finalfusion.Embeddings.read_text_dims(
+        os.path.join(tests_root, "floret-check.txt")
+    )
+
+
+@pytest.fixture
+def embeddings_floret_text(tests_root):
+    yield finalfusion.Embeddings.read_floret_text(
+        os.path.join(tests_root, "embeddings.floret")
+    )
 
 
 @pytest.fixture
