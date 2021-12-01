@@ -55,7 +55,9 @@ def test_ngram_indices(subword_fifu):
 def test_subword_indices(subword_fifu):
     vocab = subword_fifu.vocab
     subword_indices = sorted(vocab.subword_indices("tübingen"))
-    test_indices = sorted([index for ngram_index in TEST_NGRAM_INDICES for index in ngram_index[1]])
+    test_indices = sorted(
+        [index for ngram_index in TEST_NGRAM_INDICES for index in ngram_index[1]]
+    )
     assert subword_indices == test_indices
 
 
@@ -94,4 +96,6 @@ def test_string_oov(embeddings_text_dims):
 
 def test_string_oov_subwords(subword_fifu):
     vocab = subword_fifu.vocab
-    assert sorted(vocab["tübingen"]) == [index for ngram_index in TEST_NGRAM_INDICES for index in ngram_index[1]]
+    assert sorted(vocab["tübingen"]) == [
+        index for ngram_index in TEST_NGRAM_INDICES for index in ngram_index[1]
+    ]

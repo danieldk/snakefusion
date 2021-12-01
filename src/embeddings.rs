@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::sync::{Arc, RwLock};
+use finalfusion::compat::floret::ReadFloretText;
 
 use finalfusion::compat::text::{ReadText, ReadTextDims};
 use finalfusion::compat::word2vec::ReadWord2Vec;
@@ -69,6 +70,15 @@ impl PyEmbeddings {
         } else {
             read_non_fifu_embeddings(path, |r| Embeddings::read_fasttext(r))
         }
+    }
+
+    /// read_floret(path)
+    /// --
+    ///
+    /// Read embeddings in the floret text format.
+    #[staticmethod]
+    fn read_floret_text(path: &str) -> PyResult<PyEmbeddings> {
+        read_non_fifu_embeddings(path, |r| Embeddings::read_floret_text(r))
     }
 
     /// read_text(path,/ lossy)
