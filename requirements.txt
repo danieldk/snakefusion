@@ -1,5 +1,0 @@
-# Runtime dependencies
-numpy
-# Development dependencies
-pytest
-setuptools-rust

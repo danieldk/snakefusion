@@ -20,9 +20,7 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: pip install numpy pytest setuptools-rust
-      - name: Build package
-        run: pip install -e .
-      - name: Run tests
-        run: pytest snakefusion
+      - name: Install tox
+        run: pip install tox tox-gh-actions
+      - name: Test 
+        run: tox

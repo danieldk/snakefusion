@@ -23,7 +23,7 @@ use storage::PyStorage;
 /// finalfusion is a format for word embeddings that supports words,
 /// subwords, memory-mapped matrices, and quantized matrices.
 #[pymodule]
-fn _snakefusion(_py: Python, m: &PyModule) -> PyResult<()> {
+fn snakefusion(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyEmbeddings>()?;
     m.add_class::<PyEmbedding>()?;
     m.add_class::<PyStorage>()?;
