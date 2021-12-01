@@ -65,6 +65,7 @@ impl PyStorage {
     }
 
     /// Get the shape of the storage.
+    #[getter]
     fn shape(&self) -> (usize, usize) {
         let embeddings = self.embeddings.read().unwrap();
         embeddings.storage().shape()

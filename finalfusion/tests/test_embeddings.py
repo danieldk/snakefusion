@@ -21,7 +21,7 @@ def test_embeddings(embeddings_fifu, embeddings_text, embeddings_text_dims):
     # Check that the finalfusion embeddings have the correct dimensionality
     # The correct dimensionality of the other embedding types is asserted
     # in the pairwise comparisons below.
-    assert fifu_storage.shape() == (7, 10)
+    assert fifu_storage.shape == (7, 10)
 
     for embedding, storage_row in zip(embeddings_fifu, fifu_storage):
         assert numpy.allclose(
