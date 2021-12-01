@@ -1,1 +1,1 @@
-from .snakefusion import *
+from ._snakefusion import *
