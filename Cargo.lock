@@ -113,18 +113,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "finalfusion-python"
-version = "0.6.0"
-dependencies = [
- "finalfusion",
- "itertools 0.8.2",
- "ndarray",
- "numpy",
- "pyo3",
- "toml",
-]
-
-[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -604,6 +592,18 @@ name = "smallvec"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ecab6c735a6bb4139c0caafd0cc3635748bbb3acf4550e8138122099251f309"
+
+[[package]]
+name = "snakefusion"
+version = "0.1.0"
+dependencies = [
+ "finalfusion",
+ "itertools 0.8.2",
+ "ndarray",
+ "numpy",
+ "pyo3",
+ "toml",
+]
 
 [[package]]
 name = "syn"
