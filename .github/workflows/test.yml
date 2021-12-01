@@ -25,4 +25,4 @@ jobs:
       - name: Build package
         run: pip install -e .
       - name: Run tests
-        run: pytest finalfusion
+        run: pytest snakefusion

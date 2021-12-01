@@ -1,16 +1,15 @@
 [package]
-name = "finalfusion-python"
-version = "0.6.0"
+name = "snakefusion"
+version = "0.1.0"
 authors = ["Daniël de Kok <me@danieldk.eu>"]
 edition = "2018"
 description = "Finalfusion Python module"
-documentation = "https://finalfusion.github.io/python"
-homepage = "https://finalfusion.github.io/"
-repository = "https://github.com/finalfusion/finalfusion-python.git"
+homepage = "https://github.com/danieldk/snakefusion"
+repository = "https://github.com/danieldk/snakefusion.git"
 license = "MIT OR Apache-2.0"
 
 [lib]
-name = "finalfusion"
+name = "snakefusion"
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]
