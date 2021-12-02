@@ -798,7 +798,7 @@ checksum = "1ecab6c735a6bb4139c0caafd0cc3635748bbb3acf4550e8138122099251f309"
 
 [[package]]
 name = "snakefusion"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "accelerate-src",
  "anyhow",
