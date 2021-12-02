@@ -1,7 +1,11 @@
+use finalfusion::embeddings::Quantize;
 use finalfusion::norms::NdNorms;
 use finalfusion::prelude::*;
-use finalfusion::storage::Storage;
+use finalfusion::storage::{QuantizedArray, Storage};
 use ndarray::{CowArray, Ix1};
+use pyo3::exceptions::PyValueError;
+use pyo3::{PyResult, Python};
+use reductive::pq::TrainPq;
 
 pub enum EmbeddingsWrap {
     NonView(Embeddings<VocabWrap, StorageWrap>),
@@ -38,6 +42,39 @@ impl EmbeddingsWrap {
         match self {
             View(e) => e.embedding(word),
             NonView(e) => e.embedding(word),
+        }
+    }
+
+    pub fn quantize<P>(
+        &self,
+        py: Python,
+        n_subquantizers: usize,
+        n_subquantizer_bits: u32,
+        n_iterations: usize,
+        n_attempts: usize,
+        normalize: bool,
+    ) -> PyResult<Embeddings<VocabWrap, QuantizedArray>>
+    where
+        P: TrainPq<f32>,
+    {
+        use EmbeddingsWrap::*;
+        match self {
+            NonView(_) => Err(PyValueError::new_err(
+                "Quantization is not supported for this type of embeddings",
+            )),
+            View(e) => py
+                .allow_threads(|| {
+                    e.quantize::<P>(
+                        n_subquantizers,
+                        n_subquantizer_bits,
+                        n_iterations,
+                        n_attempts,
+                        normalize,
+                    )
+                })
+                .map_err(|err| {
+                    PyValueError::new_err(format!("Error quantizing embeddings: {}", err))
+                }),
         }
     }
 

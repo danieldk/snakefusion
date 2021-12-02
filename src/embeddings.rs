@@ -2,8 +2,8 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::sync::{Arc, RwLock};
-use finalfusion::compat::floret::ReadFloretText;
 
+use finalfusion::compat::floret::ReadFloretText;
 use finalfusion::compat::text::{ReadText, ReadTextDims};
 use finalfusion::compat::word2vec::ReadWord2Vec;
 use finalfusion::io::WriteEmbeddings;
@@ -16,9 +16,13 @@ use itertools::Itertools;
 use ndarray::Array1;
 use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1};
 use pyo3::class::iter::PyIterProtocol;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyIterator, PyTuple};
 use pyo3::{exceptions, PyMappingProtocol};
+use reductive::pq::Pq;
+#[cfg(feature = "opq")]
+use reductive::pq::{GaussianOPQ, OPQ};
 use toml::{self, Value};
 
 use crate::storage::PyStorage;
@@ -271,6 +275,34 @@ impl PyEmbeddings {
         }
     }
 
+    #[args(
+        quantizer = "\"pq\"",
+        n_subquantizer_bits = 8,
+        n_iterations = 100,
+        n_attempts = 1,
+        normalize = true
+    )]
+    fn quantize(
+        &self,
+        py: Python,
+        n_subquantizers: usize,
+        quantizer: &str,
+        n_subquantizer_bits: u32,
+        n_iterations: usize,
+        n_attempts: usize,
+        normalize: bool,
+    ) -> PyResult<PyEmbeddings> {
+        self.quantize_(
+            py,
+            quantizer,
+            n_subquantizers,
+            n_subquantizer_bits,
+            n_iterations,
+            n_attempts,
+            normalize,
+        )
+    }
+
     #[setter]
     fn set_metadata(&mut self, metadata: &str) -> PyResult<()> {
         let value = match metadata.parse::<Value>() {
@@ -362,6 +394,95 @@ impl PyEmbeddings {
                 .write_embeddings(&mut writer)
                 .map_err(|err| exceptions::PyIOError::new_err(err.to_string())),
         }
+    }
+}
+
+#[cfg(feature = "opq")]
+impl PyEmbeddings {
+    fn quantize_(
+        &self,
+        py: Python,
+        quantizer: &str,
+        n_subquantizers: usize,
+        n_subquantizer_bits: u32,
+        n_iterations: usize,
+        n_attempts: usize,
+        normalize: bool,
+    ) -> PyResult<PyEmbeddings> {
+        let embeddings = self.embeddings.read().unwrap();
+
+        let quantized_embeddings = match quantizer {
+            "pq" => embeddings.quantize::<Pq<f32>>(
+                py,
+                n_subquantizers,
+                n_subquantizer_bits,
+                n_iterations,
+                n_attempts,
+                normalize,
+            ),
+            "opq" => embeddings.quantize::<OPQ>(
+                py,
+                n_subquantizers,
+                n_subquantizer_bits,
+                n_iterations,
+                n_attempts,
+                normalize,
+            ),
+            "gaussian_opq" => embeddings.quantize::<GaussianOPQ>(
+                py,
+                n_subquantizers,
+                n_subquantizer_bits,
+                n_iterations,
+                n_attempts,
+                normalize,
+            ),
+            quantizer => Err(PyValueError::new_err(format!(
+                "Unsupported quantizer: {}, must be one of: pq, opq, gaussian_opq",
+                quantizer
+            ))),
+        }?;
+
+        Ok(PyEmbeddings {
+            embeddings: Arc::new(RwLock::new(EmbeddingsWrap::NonView(
+                quantized_embeddings.into(),
+            ))),
+        })
+    }
+}
+
+#[cfg(not(feature = "opq"))]
+impl PyEmbeddings {
+    fn quantize_(
+        &self,
+        py: Python,
+        quantizer: &str,
+        n_subquantizers: usize,
+        n_subquantizer_bits: u32,
+        n_iterations: usize,
+        n_attempts: usize,
+        normalize: bool,
+    ) -> PyResult<PyEmbeddings> {
+        let embeddings = self.embeddings.read().unwrap();
+        let quantized_embeddings = match quantizer {
+            "pq" => embeddings.quantize::<Pq<f32>>(
+                py,
+                n_subquantizers,
+                n_subquantizer_bits,
+                n_iterations,
+                n_attempts,
+                normalize,
+            ),
+            quantizer => Err(PyValueError::new_err(format!(
+                "Unsupported quantizer: {}, opq and guassian_opq quantizers require LAPACK",
+                quantizer
+            ))),
+        }?;
+
+        Ok(PyEmbeddings {
+            embeddings: Arc::new(RwLock::new(EmbeddingsWrap::NonView(
+                quantized_embeddings.into(),
+            ))),
+        })
     }
 }
 

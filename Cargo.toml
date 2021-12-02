@@ -21,7 +21,28 @@ itertools = "0.8"
 finalfusion = { git = "https://github.com/finalfusion/finalfusion-rust" }
 ndarray = "0.15"
 numpy = "0.15"
+pyo3-log = "0.5"
+reductive = "0.8.1"
 toml = "0.5"
+
+# Fix incompatibility between anyhow and intel-mkl tool. Remove with
+# the next release of intel-mkl too. For more information, see:
+# https://github.com/rust-math/intel-mkl-src/issues/68
+anyhow = { version = "<=1.0.48", optional = true }
+
+[dependencies.accelerate-src]
+version = "0.3"
+optional = true
+
+[dependencies.intel-mkl-src]
+version = "0.6"
+optional = true
+default-features = false
+
+[features]
+accelerate = ["opq", "ndarray/blas", "accelerate-src"]
+intel-mkl = ["opq", "ndarray/blas", "intel-mkl-src/mkl-static-lp64-seq", "anyhow"]
+opq = ["reductive/opq-train"]
 
 [package.metadata.maturin]
 requires-dist = ["numpy"]
