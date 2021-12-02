@@ -51,7 +51,7 @@ impl PyEmbeddings {
         let embeddings = match read_embeddings(path, mmap) {
             Ok(e) => EmbeddingsWrap::View(e),
             Err(_) => read_embeddings(path, mmap)
-                .map(|e| EmbeddingsWrap::NonView(e))
+                .map(EmbeddingsWrap::NonView)
                 .map_err(|err| exceptions::PyIOError::new_err(err.to_string()))?,
         };
 
@@ -275,6 +275,7 @@ impl PyEmbeddings {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[args(
         quantizer = "\"pq\"",
         n_subquantizer_bits = 8,
@@ -398,6 +399,7 @@ impl PyEmbeddings {
 }
 
 #[cfg(feature = "opq")]
+#[allow(clippy::too_many_arguments)]
 impl PyEmbeddings {
     fn quantize_(
         &self,
@@ -451,6 +453,7 @@ impl PyEmbeddings {
 }
 
 #[cfg(not(feature = "opq"))]
+#[allow(clippy::too_many_arguments)]
 impl PyEmbeddings {
     fn quantize_(
         &self,
