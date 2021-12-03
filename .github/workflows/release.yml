@@ -6,6 +6,22 @@ on:
       - '*'
 
 jobs:
+  aarch64-manylinux2014:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Set up QEMU
+      id: qemu
+      uses: docker/setup-qemu-action@v1
+    - name: Build
+      run: |
+        docker run -v $PWD:/root --rm quay.io/pypa/manylinux2014_aarch64 /root/.github/workflows/build-wheels.sh
+    - name: Did it work
+      run: |
+        ls wheelhouse
+
+
   x86_64-manylinux2014:
     runs-on: ubuntu-latest
     container: quay.io/pypa/manylinux2014_x86_64
