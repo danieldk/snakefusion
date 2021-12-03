@@ -23,7 +23,7 @@ finalfusion = { git = "https://github.com/finalfusion/finalfusion-rust" }
 ndarray = "0.15"
 numpy = "0.15"
 pyo3-log = "0.5"
-reductive = "0.8.1"
+reductive = "0.9"
 toml = "0.5"
 
 # Fix incompatibility between anyhow and intel-mkl tool. Remove with
