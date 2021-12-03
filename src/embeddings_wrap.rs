@@ -2,7 +2,7 @@ use finalfusion::embeddings::Quantize;
 use finalfusion::norms::NdNorms;
 use finalfusion::prelude::*;
 use finalfusion::storage::{QuantizedArray, Storage};
-use ndarray::{CowArray, Ix1};
+use ndarray::{Array2, ArrayViewMut2, CowArray, Ix1};
 use pyo3::exceptions::PyValueError;
 use pyo3::{PyResult, Python};
 use reductive::pq::TrainPq;
@@ -42,6 +42,22 @@ impl EmbeddingsWrap {
         match self {
             View(e) => e.embedding(word),
             NonView(e) => e.embedding(word),
+        }
+    }
+
+    pub fn embedding_batch(&self, words: &[&str]) -> (Array2<f32>, Vec<bool>) {
+        use EmbeddingsWrap::*;
+        match self {
+            View(e) => e.embedding_batch(words),
+            NonView(e) => e.embedding_batch(words),
+        }
+    }
+
+    pub fn embedding_batch_into(&self, words: &[&str], output: ArrayViewMut2<f32>) -> Vec<bool> {
+        use EmbeddingsWrap::*;
+        match self {
+            View(e) => e.embedding_batch_into(words, output),
+            NonView(e) => e.embedding_batch_into(words, output),
         }
     }
 

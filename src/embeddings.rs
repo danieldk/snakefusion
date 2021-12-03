@@ -14,7 +14,7 @@ use finalfusion::storage::{NdArray, Storage};
 use finalfusion::vocab::Vocab;
 use itertools::Itertools;
 use ndarray::Array1;
-use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1};
 use pyo3::class::iter::PyIterProtocol;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -236,6 +236,34 @@ impl PyEmbeddings {
             PyEmbeddingDefault::Embedding(array) => Ok(Some(array)),
             PyEmbeddingDefault::None => Ok(None),
         }
+    }
+
+    /// embedding(words,/,out)
+    /// --
+    ///
+    /// Get the embedding for a batch of words. The embeddings are returned
+    /// along with an array that indicates for each word whether an embedding
+    /// could be found.
+    ///
+    /// If a matrix is provided through the `out` argument, embeddings are
+    /// written to that matrix. Rows corresponding to words for which no
+    /// embedding could be found are not overwritten.
+    fn embedding_batch<'py>(
+        &self,
+        py: Python<'py>,
+        words: Vec<&str>,
+        out: Option<&'py PyArray2<f32>>,
+    ) -> (&'py PyArray2<f32>, Vec<bool>) {
+        let embeddings = self.embeddings.read().unwrap();
+
+        let out = match out {
+            Some(out) => out,
+            None => PyArray2::zeros(py, (words.len(), embeddings.storage().shape().1), false),
+        };
+
+        let present = embeddings.embedding_batch_into(&words, unsafe { out.as_array_mut() });
+
+        (out, present)
     }
 
     fn embedding_with_norm(&self, word: &str) -> Option<Py<PyTuple>> {
