@@ -173,7 +173,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "finalfusion"
 version = "0.16.0"
-source = "git+https://github.com/finalfusion/finalfusion-rust#a652bc25a0acae82a8cb7c3a378830514d8abccd"
+source = "git+https://github.com/finalfusion/finalfusion-rust#2946ceec2add27ff53a781fb6f71a07be795ab79"
 dependencies = [
  "byteorder",
  "fnv",
@@ -732,9 +732,9 @@ dependencies = [
 
 [[package]]
 name = "reductive"
-version = "0.8.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd80fc9c2b940bd2bde02616bc1f95695f0b737bc3ca00775fd91a6952e6049f"
+checksum = "7178e6a493368141ea460b21e5db07d70207091b85344a46d7cb2b405d02b752"
 dependencies = [
  "lax",
  "log",
@@ -747,6 +747,7 @@ dependencies = [
  "rand_core",
  "rand_xorshift",
  "rayon",
+ "thiserror",
 ]
 
 [[package]]

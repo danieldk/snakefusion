@@ -22,7 +22,7 @@ use pyo3::types::{PyAny, PyIterator, PyTuple};
 use pyo3::{exceptions, PyMappingProtocol};
 use reductive::pq::Pq;
 #[cfg(feature = "opq")]
-use reductive::pq::{GaussianOPQ, OPQ};
+use reductive::pq::{GaussianOpq, Opq};
 use toml::{self, Value};
 
 use crate::storage::PyStorage;
@@ -422,7 +422,7 @@ impl PyEmbeddings {
                 n_attempts,
                 normalize,
             ),
-            "opq" => embeddings.quantize::<OPQ>(
+            "opq" => embeddings.quantize::<Opq>(
                 py,
                 n_subquantizers,
                 n_subquantizer_bits,
@@ -430,7 +430,7 @@ impl PyEmbeddings {
                 n_attempts,
                 normalize,
             ),
-            "gaussian_opq" => embeddings.quantize::<GaussianOPQ>(
+            "gaussian_opq" => embeddings.quantize::<GaussianOpq>(
                 py,
                 n_subquantizers,
                 n_subquantizer_bits,
