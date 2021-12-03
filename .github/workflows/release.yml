@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  x86_64-manylinux2014:
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install Rust
+      run: |
+        curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain stable -y
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    - name: Set up Python 3.6
+      run: |
+        echo "/opt/python/cp36-cp36m/bin" >> $GITHUB_PATH
+        echo "PYROOT=/opt/python/cp36-cp36m" >> $GITHUB_ENV
+        echo "PYBIN=/opt/python/cp36-cp36m/bin" >> $GITHUB_ENV
+    - name: Install MKL
+      run: |
+        ${{ env.PYBIN }}/pip install mkl-static==2021.4.0
+        ln -s ${{ env.PYROOT }}/lib ${{ env.PYROOT }}/lib/intel64
+        echo "MKLROOT=${{ env.PYROOT }}" >> $GITHUB_ENV
+    - name: Install build tools
+      run: |
+        ${{ env.PYBIN }}/pip install auditwheel maturin
+    - name: Build abi3 wheel
+      run: |
+        ${{ env.PYBIN }}/maturin build --release \
+          -i ${{ env.PYBIN }}/python \
+          --cargo-extra-args='--features="intel-mkl"' \
+          --compatibility manylinux2014
+    - name: Audit wheel
+      run: |
+        for wheel in target/wheels/*.whl; do
+          ${{ env.PYBIN }}/auditwheel repair "${wheel}"
+        done
