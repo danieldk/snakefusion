@@ -67,3 +67,28 @@ jobs:
         for wheel in target/wheels/*.whl; do
           ${{ env.PYBIN }}/auditwheel repair "${wheel}"
         done
+
+  windows:
+    name: Windows wheel
+    strategy:
+      matrix:
+        python-version: ['3.6']
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install build tools
+      run: |
+        pip install maturin
+    - name: Build Python ${{ matrix.python-version}} wheel
+      run: |
+        maturin build --release -i ${{ env.pythonLocation }}\python.exe
