@@ -6,7 +6,7 @@ on:
       - '*'
 
 jobs:
-  macos:
+  release-macos:
     name: macOS universal wheel
     runs-on: macos-latest
     steps:
@@ -31,8 +31,13 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET: '10.9'
       run: |
         maturin build --release --universal2 -i `which python3.6`
+    - name: Upload wheel
+      uses: actions/upload-artifact@v2
+      with:
+        name: wheels
+        path: target/wheels/*.whl
 
-  x86_64-manylinux2014:
+  release-linux-x86_64:
     name: x86_64 manylinux wheel
     runs-on: ubuntu-latest
     container: quay.io/pypa/manylinux2014_x86_64
@@ -67,8 +72,13 @@ jobs:
         for wheel in target/wheels/*.whl; do
           ${{ env.PYBIN }}/auditwheel repair "${wheel}"
         done
+    - name: Upload wheel
+      uses: actions/upload-artifact@v2
+      with:
+        name: wheels
+        path: wheelhouse/*.whl
 
-  windows:
+  release-windows:
     name: Windows wheel
     strategy:
       matrix:
@@ -92,3 +102,25 @@ jobs:
     - name: Build Python ${{ matrix.python-version}} wheel
       run: |
         maturin build --release -i ${{ env.pythonLocation }}\python.exe
+    - name: Upload wheel
+      uses: actions/upload-artifact@v2
+      with:
+        name: wheels
+        path: target/wheels/*.whl
+
+  release-github:
+    name: Publish to GitHub releases
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [ release-macos, release-linux-x86_64, release-windows ]
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: wheels
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.whl
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+          draft: true
