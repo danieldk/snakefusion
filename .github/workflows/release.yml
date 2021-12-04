@@ -6,6 +6,32 @@ on:
       - '*'
 
 jobs:
+  macos:
+    name: macOS universal wheel
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+        target: aarch64-apple-darwin
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+    - name: Install build tools
+      run: |
+        pip install maturin
+    - name: Build abi3 wheel
+      env:
+        DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+        MACOSX_DEPLOYMENT_TARGET: '10.9'
+      run: |
+        maturin build --release --universal2 -i `which python3.6`
+
   x86_64-manylinux2014:
     name: x86_64 manylinux wheel
     runs-on: ubuntu-latest
