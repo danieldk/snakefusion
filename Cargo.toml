@@ -18,7 +18,7 @@ version = "0.15.1"
 features = ["extension-module", "abi3", "abi3-py36"]
 
 [dependencies]
-itertools = "0.8"
+itertools = "0.10"
 finalfusion = "0.17.1"
 ndarray = "0.15"
 numpy = "0.15"
