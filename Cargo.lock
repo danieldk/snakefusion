@@ -172,8 +172,9 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
 name = "finalfusion"
-version = "0.16.0"
-source = "git+https://github.com/finalfusion/finalfusion-rust#2946ceec2add27ff53a781fb6f71a07be795ab79"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7902d4ede42ac491256f09c922157a6e9d5535b5b53289690715357799c1d344"
 dependencies = [
  "byteorder",
  "fnv",
@@ -369,9 +370,9 @@ dependencies = [
 
 [[package]]
 name = "memmap2"
-version = "0.3.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00b6c2ebff6180198788f5db08d7ce3bc1d0b617176678831a7510825973e357"
+checksum = "4647a11b578fead29cdbb34d4adef8dd3dc35b876c9c6d5240d83f205abfe96e"
 dependencies = [
  "libc",
 ]

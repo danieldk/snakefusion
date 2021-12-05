@@ -573,7 +573,7 @@ where
     Embeddings<VocabWrap, S>: ReadEmbeddings + MmapEmbeddings,
 {
     let f = File::open(path).map_err(|e| {
-        finalfusion::error::Error::io_error("Cannot open embeddings file for reading", e)
+        finalfusion::error::Error::read_error("Cannot open embeddings file for reading", e)
     })?;
     let mut reader = BufReader::new(f);
 
