@@ -11,7 +11,7 @@ use crate::EmbeddingsWrap;
 
 type NGramIndex = (String, Vec<usize>);
 
-/// finalfusion vocab.
+/// Embeddings vocabulary
 #[pyclass(name = "Vocab")]
 pub struct PyVocab {
     embeddings: Arc<RwLock<EmbeddingsWrap>>,
@@ -25,6 +25,17 @@ impl PyVocab {
 
 #[pymethods]
 impl PyVocab {
+    /// get(self, word, /, default=None)
+    /// --
+    ///
+    /// Get the index or subword indices of a word.
+    ///
+    /// If a word is known, returns the index of the word in the
+    /// embedding matrix. If a word is unknown, return its subword
+    /// indices.
+    ///
+    /// The provided `default` parameter is returned if the word
+    /// could not be looked up.
     #[args(default = "Python::acquire_gil().python().None()")]
     fn get(&self, key: &str, default: PyObject) -> Option<PyObject> {
         let embeds = self.embeddings.read().unwrap();
@@ -39,6 +50,10 @@ impl PyVocab {
         idx
     }
 
+    /// ngram_indices(self, word)
+    /// --
+    ///
+    /// Return the of a word and their indices.
     fn ngram_indices(&self, word: &str) -> PyResult<Option<Vec<NGramIndex>>> {
         let embeds = self.embeddings.read().unwrap();
         let indices = match embeds.vocab() {
@@ -63,6 +78,10 @@ impl PyVocab {
         Ok(indices)
     }
 
+    /// subword_indices(self, word)
+    /// --
+    ///
+    /// Return the subword indices of a word.
     fn subword_indices(&self, word: &str) -> PyResult<Option<Vec<usize>>> {
         let embeds = self.embeddings.read().unwrap();
         match embeds.vocab() {
@@ -103,6 +122,11 @@ impl PyVocab {
 
 #[pyproto]
 impl PyMappingProtocol for PyVocab {
+    /// Get the index or subword indices of a word.
+    ///
+    /// If a word is known, returns the index of the word in the
+    /// embedding matrix. If a word is unknown, return its subword
+    /// indices.
     fn __getitem__(&self, query: PyObject) -> PyResult<PyObject> {
         let embeds = self.embeddings.read().unwrap();
         let vocab = embeds.vocab();
