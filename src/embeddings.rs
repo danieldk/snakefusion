@@ -16,10 +16,10 @@ use itertools::Itertools;
 use ndarray::Array1;
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1};
 use pyo3::class::iter::PyIterProtocol;
+use pyo3::exceptions;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyIterator, PyTuple};
-use pyo3::{exceptions, PyMappingProtocol};
 use reductive::pq::Pq;
 #[cfg(feature = "opq")]
 use reductive::pq::{GaussianOpq, Opq};
@@ -145,6 +145,15 @@ impl PyEmbeddings {
         }
     }
 
+    fn __getitem__(&self, py: Python, word: &str) -> PyResult<Py<PyArray1<f32>>> {
+        let embeddings = self.embeddings.read().unwrap();
+
+        match py.allow_threads(|| embeddings.embedding(word)) {
+            Some(embedding) => Ok(embedding.into_owned().into_pyarray(py).to_owned()),
+            None => Err(exceptions::PyKeyError::new_err("Unknown word and n-grams")),
+        }
+    }
+
     /// Get the model's vocabulary.
     #[getter]
     fn vocab(&self) -> PyResult<PyVocab> {
@@ -215,29 +224,27 @@ impl PyEmbeddings {
     #[args(default = "PyEmbeddingDefault::default()")]
     fn embedding(
         &self,
+        py: Python,
         word: &str,
         default: PyEmbeddingDefault,
     ) -> PyResult<Option<Py<PyArray1<f32>>>> {
         let embeddings = self.embeddings.read().unwrap();
-        let gil = pyo3::Python::acquire_gil();
         if let PyEmbeddingDefault::Embedding(array) = &default {
-            if array.as_ref(gil.python()).shape()[0] != embeddings.storage().shape().1 {
+            if array.as_ref(py).shape()[0] != embeddings.storage().shape().1 {
                 return Err(exceptions::PyValueError::new_err(format!(
                     "Invalid shape of default embedding: {}",
-                    array.as_ref(gil.python()).shape()[0]
+                    array.as_ref(py).shape()[0]
                 )));
             }
         }
 
-        if let Some(embedding) = embeddings.embedding(word) {
-            return Ok(Some(
-                embedding.into_owned().into_pyarray(gil.python()).to_owned(),
-            ));
+        if let Some(embedding) = py.allow_threads(|| embeddings.embedding(word)) {
+            return Ok(Some(embedding.into_owned().into_pyarray(py).to_owned()));
         };
         match default {
             PyEmbeddingDefault::Constant(constant) => {
                 let nd_arr = Array1::from_elem([embeddings.storage().shape().1], constant);
-                Ok(Some(nd_arr.into_pyarray(gil.python()).to_owned()))
+                Ok(Some(nd_arr.into_pyarray(py).to_owned()))
             }
             PyEmbeddingDefault::Embedding(array) => Ok(Some(array)),
             PyEmbeddingDefault::None => Ok(None),
@@ -277,19 +284,18 @@ impl PyEmbeddings {
     ///
     /// Look up the embedding and norm of a word. The embedding and
     /// norm are returned as a tuple.
-    fn embedding_with_norm(&self, word: &str) -> Option<Py<PyTuple>> {
+    fn embedding_with_norm(&self, py: Python, word: &str) -> Option<Py<PyTuple>> {
         let embeddings = self.embeddings.read().unwrap();
 
         use EmbeddingsWrap::*;
-        let embedding_with_norm = match &*embeddings {
+        let embedding_with_norm = py.allow_threads(|| match &*embeddings {
             View(e) => e.embedding_with_norm(word),
             NonView(e) => e.embedding_with_norm(word),
-        };
+        });
 
         embedding_with_norm.map(|e| {
-            let gil = pyo3::Python::acquire_gil();
-            let embedding = e.embedding.into_owned().into_pyarray(gil.python());
-            (embedding, e.norm).into_py(gil.python())
+            let embedding = e.embedding.into_owned().into_pyarray(py);
+            (embedding, e.norm).into_py(py)
         })
     }
 
@@ -570,21 +576,6 @@ impl PyEmbeddings {
             ))
         }
         Ok(r)
-    }
-}
-
-#[pyproto]
-impl PyMappingProtocol for PyEmbeddings {
-    fn __getitem__(&self, word: &str) -> PyResult<Py<PyArray1<f32>>> {
-        let embeddings = self.embeddings.read().unwrap();
-
-        match embeddings.embedding(word) {
-            Some(embedding) => {
-                let gil = pyo3::Python::acquire_gil();
-                Ok(embedding.into_owned().into_pyarray(gil.python()).to_owned())
-            }
-            None => Err(exceptions::PyKeyError::new_err("Unknown word and n-grams")),
-        }
     }
 }
 
