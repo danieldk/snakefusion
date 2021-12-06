@@ -1,6 +1,7 @@
 # 🐍 snakefusion
 
 [![Documentation Status](https://readthedocs.org/projects/snakefusion/badge/?version=latest)](https://snakefusion.readthedocs.io/en/latest/?badge=latest)
+[![pypi Version](https://img.shields.io/pypi/v/snakefusion.svg?style=flat-square&logo=pypi&logoColor=white)](https://pypi.org/project/snakefusion/)
 
 ## Introduction
 
