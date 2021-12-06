@@ -4,7 +4,7 @@ use finalfusion::vocab::{NGramIndices, SubwordIndices, Vocab, VocabWrap, WordInd
 use pyo3::class::sequence::PySequenceProtocol;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::{PyIterProtocol, PyMappingProtocol};
+use pyo3::PyIterProtocol;
 
 use crate::iter::PyVocabIterator;
 use crate::EmbeddingsWrap;
@@ -25,6 +25,24 @@ impl PyVocab {
 
 #[pymethods]
 impl PyVocab {
+    fn __getitem__(&self, py: Python, query: PyObject) -> PyResult<PyObject> {
+        let embeds = self.embeddings.read().unwrap();
+        let vocab = embeds.vocab();
+        if let Ok(idx) = query.extract::<isize>(py) {
+            let idx = self.validate_and_convert_isize_idx(idx)?;
+            return Ok(vocab.words()[idx].clone().into_py(py));
+        }
+
+        if let Ok(query) = query.extract::<String>(py) {
+            return self.str_to_indices(py, &query).map(|idx| match idx {
+                WordIndex::Subword(indices) => indices.into_py(py),
+                WordIndex::Word(idx) => idx.into_py(py),
+            });
+        }
+
+        Err(PyKeyError::new_err("key must be integer or string"))
+    }
+
     /// get(self, word, /, default=None)
     /// --
     ///
@@ -37,14 +55,15 @@ impl PyVocab {
     /// The provided `default` parameter is returned if the word
     /// could not be looked up.
     #[args(default = "Python::acquire_gil().python().None()")]
-    fn get(&self, key: &str, default: PyObject) -> Option<PyObject> {
+    fn get(&self, py: Python, key: &str, default: PyObject) -> Option<PyObject> {
         let embeds = self.embeddings.read().unwrap();
-        let gil = pyo3::Python::acquire_gil();
-        let idx = embeds.vocab().idx(key).map(|idx| match idx {
-            WordIndex::Word(idx) => idx.to_object(gil.python()),
-            WordIndex::Subword(indices) => indices.to_object(gil.python()),
-        });
-        if !default.is_none(gil.python()) && idx.is_none() {
+        let idx = py
+            .allow_threads(|| embeds.vocab().idx(key))
+            .map(|idx| match idx {
+                WordIndex::Word(idx) => idx.to_object(py),
+                WordIndex::Subword(indices) => indices.to_object(py),
+            });
+        if !default.is_none(py) && idx.is_none() {
             return Some(default);
         }
         idx
@@ -97,11 +116,9 @@ impl PyVocab {
 }
 
 impl PyVocab {
-    fn str_to_indices(&self, query: &str) -> PyResult<WordIndex> {
+    fn str_to_indices(&self, py: Python, query: &str) -> PyResult<WordIndex> {
         let embeds = self.embeddings.read().unwrap();
-        embeds
-            .vocab()
-            .idx(query)
+        py.allow_threads(|| embeds.vocab().idx(query))
             .ok_or_else(|| PyKeyError::new_err(format!("key not found: '{}'", query)))
     }
 
@@ -117,33 +134,6 @@ impl PyVocab {
         } else {
             Ok(idx as usize)
         }
-    }
-}
-
-#[pyproto]
-impl PyMappingProtocol for PyVocab {
-    /// Get the index or subword indices of a word.
-    ///
-    /// If a word is known, returns the index of the word in the
-    /// embedding matrix. If a word is unknown, return its subword
-    /// indices.
-    fn __getitem__(&self, query: PyObject) -> PyResult<PyObject> {
-        let embeds = self.embeddings.read().unwrap();
-        let vocab = embeds.vocab();
-        let gil = Python::acquire_gil();
-        if let Ok(idx) = query.extract::<isize>(gil.python()) {
-            let idx = self.validate_and_convert_isize_idx(idx)?;
-            return Ok(vocab.words()[idx].clone().into_py(gil.python()));
-        }
-
-        if let Ok(query) = query.extract::<String>(gil.python()) {
-            return self.str_to_indices(&query).map(|idx| match idx {
-                WordIndex::Subword(indices) => indices.into_py(gil.python()),
-                WordIndex::Word(idx) => idx.into_py(gil.python()),
-            });
-        }
-
-        Err(PyKeyError::new_err("key must be integer or string"))
     }
 }
 
