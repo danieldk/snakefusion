@@ -9,7 +9,7 @@ use pyo3::prelude::*;
 
 use crate::EmbeddingsWrap;
 
-/// finalfusion storage.
+/// Embedding matrix storage.
 #[pyclass(name = "Storage")]
 pub struct PyStorage {
     embeddings: Arc<RwLock<EmbeddingsWrap>>,
@@ -39,6 +39,9 @@ impl PyStorage {
 
 #[pymethods]
 impl PyStorage {
+    /// matrix_copy(self)
+    /// --
+    ///
     /// Copy the entire embeddings matrix.
     fn matrix_copy(&self) -> Py<PyArray2<f32>> {
         let embeddings = self.embeddings.read().unwrap();
@@ -64,7 +67,7 @@ impl PyStorage {
         matrix_view.to_pyarray(gil.python()).to_owned()
     }
 
-    /// Get the shape of the storage.
+    /// Get the shape of the embedding matrix.
     #[getter]
     fn shape(&self) -> (usize, usize) {
         let embeddings = self.embeddings.read().unwrap();

@@ -36,6 +36,9 @@ pub struct PyEmbeddings {
 
 #[pymethods]
 impl PyEmbeddings {
+    /// new(path, mmap=False)
+    /// --
+    ///
     /// Load embeddings from the given `path`.
     ///
     /// When the `mmap` argument is `True`, the embedding matrix is
@@ -60,7 +63,7 @@ impl PyEmbeddings {
         })
     }
 
-    /// read_fasttext(path,/ lossy)
+    /// read_fasttext(path, /, lossy=False)
     /// --
     ///
     /// Read embeddings in the fasttext format.
@@ -76,7 +79,7 @@ impl PyEmbeddings {
         }
     }
 
-    /// read_floret(path)
+    /// read_floret_text(path)
     /// --
     ///
     /// Read embeddings in the floret text format.
@@ -85,7 +88,7 @@ impl PyEmbeddings {
         read_non_fifu_embeddings(path, |r| Embeddings::read_floret_text(r))
     }
 
-    /// read_text(path,/ lossy)
+    /// read_text(path, /, lossy=False)
     /// --
     ///
     /// Read embeddings in text format. This format uses one line per
@@ -104,7 +107,7 @@ impl PyEmbeddings {
         }
     }
 
-    /// read_text_dims(path,/ lossy)
+    /// read_text_dims(path, /, lossy=False)
     /// --
     ///
     /// Read embeddings in text format with dimensions. In this format,
@@ -126,7 +129,7 @@ impl PyEmbeddings {
         }
     }
 
-    /// read_word2vec(path,/ lossy)
+    /// read_word2vec(path, /, lossy=False)
     /// --
     ///
     /// Read embeddings in the word2vec binary format.
@@ -154,6 +157,9 @@ impl PyEmbeddings {
         PyStorage::new(self.embeddings.clone())
     }
 
+    /// analogy(self, word1, word2, word3, limit=10, mask=(True, True, True))
+    /// --
+    ///
     /// Perform an anology query.
     ///
     /// This returns words for the analogy query *w1* is to *w2*
@@ -193,7 +199,7 @@ impl PyEmbeddings {
         Self::similarity_results(py, results)
     }
 
-    /// embedding(word,/, default)
+    /// embedding(self, word, /, default=None)
     /// --
     ///
     /// Get the embedding for the given word.
@@ -238,7 +244,7 @@ impl PyEmbeddings {
         }
     }
 
-    /// embedding(words,/,out)
+    /// embedding_batch(self, words, /, out=None)
     /// --
     ///
     /// Get the embedding for a batch of words. The embeddings are returned
@@ -266,6 +272,11 @@ impl PyEmbeddings {
         (out, present)
     }
 
+    /// embedding_with_norm(self, word)
+    /// --
+    ///
+    /// Look up the embedding and norm of a word. The embedding and
+    /// norm are returned as a tuple.
     fn embedding_with_norm(&self, word: &str) -> Option<Py<PyTuple>> {
         let embeddings = self.embeddings.read().unwrap();
 
@@ -303,6 +314,19 @@ impl PyEmbeddings {
         }
     }
 
+    /// quantize(self, n_subquantizers, /, quantizer="pq", n_subquantizer_bits=8, n_iterations=100, n_attempts=1, normalize=True)
+    /// --
+    ///
+    /// Quantize the embeddings with the given hyperparemeters:
+    ///
+    /// * The number of subquantizers
+    /// * The quantizer (``pq``, ``opq``, or ``gausian_opq``).
+    /// * The number of bits per subquantizer.
+    /// * The number of optimization iterations.
+    /// * The number of quantization attempts per iteration.
+    /// * Whether embeddings should be l2-normalized before quantization.
+    ///
+    /// Returns the quantized embeddings.
     #[allow(clippy::too_many_arguments)]
     #[args(
         quantizer = "\"pq\"",
@@ -332,6 +356,9 @@ impl PyEmbeddings {
         )
     }
 
+    /// Set the metadata of the embeddings.
+    ///
+    /// Must be a valid TOML.
     #[setter]
     fn set_metadata(&mut self, metadata: &str) -> PyResult<()> {
         let value = match metadata.parse::<Value>() {
@@ -355,6 +382,9 @@ impl PyEmbeddings {
         Ok(())
     }
 
+    /// word_similarity(self, word, /, limit=10)
+    /// --
+    ///
     /// Perform a similarity query.
     #[args(limit = 10)]
     fn word_similarity(&self, py: Python, word: &str, limit: usize) -> PyResult<Vec<PyObject>> {
@@ -373,7 +403,11 @@ impl PyEmbeddings {
         Self::similarity_results(py, results)
     }
 
-    /// Perform a similarity query based on a query embedding.
+    /// embedding_similarity(self, embeddings, /, skip=None, limit=10)
+    /// --
+    ///
+    /// Perform a similarity query based on a query embedding. ``skip``
+    /// specifies the set of words that should never be returned.
     #[args(limit = 10, skip = "Skips(HashSet::new())")]
     fn embedding_similarity(
         &self,
@@ -407,6 +441,9 @@ impl PyEmbeddings {
         Self::similarity_results(py, results)
     }
 
+    /// write(self, filename)
+    /// --
+    ///
     /// Write the embeddings to a finalfusion file.
     fn write(&self, filename: &str) -> PyResult<()> {
         let f = File::create(filename)?;
