@@ -1,12 +1,11 @@
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Cursor};
 use std::sync::{Arc, RwLock};
 
 use finalfusion::compat::floret::ReadFloretText;
 use finalfusion::compat::text::{ReadText, ReadTextDims};
 use finalfusion::compat::word2vec::ReadWord2Vec;
-use finalfusion::io::WriteEmbeddings;
 use finalfusion::metadata::Metadata;
 use finalfusion::prelude::*;
 use finalfusion::similarity::*;
@@ -19,7 +18,7 @@ use pyo3::class::iter::PyIterProtocol;
 use pyo3::exceptions;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyIterator, PyTuple};
+use pyo3::types::{PyAny, PyBytes, PyIterator, PyTuple};
 use reductive::pq::Pq;
 #[cfg(feature = "opq")]
 use reductive::pq::{GaussianOpq, Opq};
@@ -299,6 +298,18 @@ impl PyEmbeddings {
         })
     }
 
+    /// from_bytes(data)
+    /// --
+    ///
+    /// Deserialize embeddings from `bytes`.
+    #[staticmethod]
+    fn from_bytes(data: &[u8]) -> PyResult<Self> {
+        let embeddings = EmbeddingsWrap::read_embeddings(&mut Cursor::new(data))?;
+        Ok(PyEmbeddings {
+            embeddings: Arc::new(RwLock::new(embeddings)),
+        })
+    }
+
     /// Embeddings metadata.
     #[getter]
     fn metadata(&self) -> PyResult<Option<String>> {
@@ -388,6 +399,22 @@ impl PyEmbeddings {
         Ok(())
     }
 
+    /// to_bytes(self)
+    /// --
+    ///
+    /// Serialize the embeddings to `bytes`.
+    fn to_bytes<'py>(&self, py: Python<'py>) -> PyResult<&'py PyBytes> {
+        let embeddings = self.embeddings.read().unwrap();
+        PyBytes::new_with(
+            py,
+            embeddings.write_embeddings_len(0) as usize,
+            |bytes: &mut [u8]| {
+                let mut cursor = Cursor::new(bytes);
+                embeddings.write_embeddings(&mut cursor)
+            },
+        )
+    }
+
     /// word_similarity(self, word, /, limit=10)
     /// --
     ///
@@ -452,20 +479,10 @@ impl PyEmbeddings {
     ///
     /// Write the embeddings to a finalfusion file.
     fn write(&self, filename: &str) -> PyResult<()> {
+        let embeddings = self.embeddings.read().unwrap();
         let f = File::create(filename)?;
         let mut writer = BufWriter::new(f);
-
-        let embeddings = self.embeddings.read().unwrap();
-
-        use EmbeddingsWrap::*;
-        match &*embeddings {
-            View(e) => e
-                .write_embeddings(&mut writer)
-                .map_err(|err| exceptions::PyIOError::new_err(err.to_string())),
-            NonView(e) => e
-                .write_embeddings(&mut writer)
-                .map_err(|err| exceptions::PyIOError::new_err(err.to_string())),
-        }
+        embeddings.write_embeddings(&mut writer)
     }
 }
 

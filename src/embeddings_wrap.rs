@@ -1,10 +1,13 @@
+use std::io::{Read, Seek, SeekFrom, Write};
+
 use finalfusion::embeddings::Quantize;
+use finalfusion::io::WriteEmbeddings;
 use finalfusion::norms::NdNorms;
 use finalfusion::prelude::*;
 use finalfusion::storage::{QuantizedArray, Storage};
 use ndarray::{Array2, ArrayViewMut2, CowArray, Ix1};
 use pyo3::exceptions::PyValueError;
-use pyo3::{PyResult, Python};
+use pyo3::{exceptions, PyResult, Python};
 use reductive::pq::TrainPq;
 
 pub enum EmbeddingsWrap {
@@ -98,6 +101,49 @@ impl EmbeddingsWrap {
         match self {
             EmbeddingsWrap::NonView(_) => None,
             EmbeddingsWrap::View(storage) => Some(storage),
+        }
+    }
+
+    pub fn read_embeddings<R>(read: &mut R) -> PyResult<EmbeddingsWrap>
+    where
+        R: Read + Seek,
+    {
+        let orig_position = read
+            .seek(SeekFrom::Current(0))
+            .map_err(|err| exceptions::PyIOError::new_err(err.to_string()))?;
+
+        match Embeddings::read_embeddings(read) {
+            Ok(e) => Ok(Self::View(e)),
+            Err(_) => {
+                read.seek(SeekFrom::Start(orig_position))
+                    .map_err(|err| exceptions::PyIOError::new_err(err.to_string()))?;
+                Embeddings::read_embeddings(read)
+                    .map(EmbeddingsWrap::NonView)
+                    .map_err(|err| exceptions::PyIOError::new_err(err.to_string()))
+            }
+        }
+    }
+
+    pub fn write_embeddings<W>(&self, write: &mut W) -> PyResult<()>
+    where
+        W: Write + Seek,
+    {
+        use EmbeddingsWrap::*;
+        match self {
+            View(e) => e
+                .write_embeddings(write)
+                .map_err(|err| exceptions::PyIOError::new_err(err.to_string())),
+            NonView(e) => e
+                .write_embeddings(write)
+                .map_err(|err| exceptions::PyIOError::new_err(err.to_string())),
+        }
+    }
+
+    pub fn write_embeddings_len(&self, offset: u64) -> u64 {
+        use EmbeddingsWrap::*;
+        match self {
+            NonView(e) => e.write_embeddings_len(offset),
+            View(e) => e.write_embeddings_len(offset),
         }
     }
 }

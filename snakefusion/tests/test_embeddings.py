@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from snakefusion import Embeddings
+
 TEST_NORMS = [
     6.557438373565674,
     8.83176040649414,
@@ -38,17 +40,31 @@ def test_embeddings(embeddings_fifu, embeddings_text, embeddings_text_dims):
 def test_embedding_batch(embeddings_fifu):
     words = ["two", "one", "seven", "one", "three", "twenty", "two"]
     zeros = np.zeros((embeddings_fifu.storage.shape[1],))
-    check_embeds = np.stack([embeddings_fifu.embedding(word, default=zeros) for word in words])
+    check_embeds = np.stack(
+        [embeddings_fifu.embedding(word, default=zeros) for word in words]
+    )
 
     # Check returning a fresh embedding matrix.
     batch_embeds, _ = embeddings_fifu.embedding_batch(words)
     assert np.allclose(batch_embeds, check_embeds)
 
     # Check with an output matrix
-    output_embeds = np.zeros((len(words), embeddings_fifu.storage.shape[1]), dtype=np.float32)
-    output_embeds_returned, _ = embeddings_fifu.embedding_batch(words, out=output_embeds)
+    output_embeds = np.zeros(
+        (len(words), embeddings_fifu.storage.shape[1]), dtype=np.float32
+    )
+    output_embeds_returned, _ = embeddings_fifu.embedding_batch(
+        words, out=output_embeds
+    )
     assert np.allclose(output_embeds, check_embeds)
     assert np.allclose(output_embeds_returned, check_embeds)
+
+
+def test_to_bytes_from_bytes_roundtrip(embeddings_fifu):
+    serialized = embeddings_fifu.to_bytes()
+    deserialized = Embeddings.from_bytes(serialized)
+
+    for embed in embeddings_fifu:
+        np.allclose(deserialized[embed.word], embed.embedding)
 
 
 def test_unknown_embeddings(embeddings_fifu):
