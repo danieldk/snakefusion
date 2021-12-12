@@ -7,7 +7,14 @@ description = "Read and use many word embedding formats"
 homepage = "https://github.com/danieldk/snakefusion"
 repository = "https://github.com/danieldk/snakefusion.git"
 license = "MIT OR Apache-2.0"
-exclude = ["build", "dist", "*.so", ".*"]
+exclude = [
+  "build",
+  "dist",
+  "docs",
+  "examples",
+  "*.so",
+  ".*"
+]
 
 [lib]
 name = "snakefusion"
