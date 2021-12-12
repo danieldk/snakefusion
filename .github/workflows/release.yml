@@ -19,7 +19,7 @@ jobs:
         override: true
         target: aarch64-apple-darwin
     - name: Set up Python 3.6
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.6
     - name: Install build tools
@@ -93,7 +93,7 @@ jobs:
         toolchain: stable
         override: true
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install build tools
