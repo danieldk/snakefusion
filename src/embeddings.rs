@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Cursor};
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use finalfusion::compat::floret::ReadFloretText;
@@ -46,13 +47,13 @@ impl PyEmbeddings {
     /// some query efficiency.
     #[new]
     #[args(mmap = false)]
-    fn new(path: &str, mmap: bool) -> PyResult<PyEmbeddings> {
+    fn new(path: PathBuf, mmap: bool) -> PyResult<PyEmbeddings> {
         // First try to load embeddings with viewable storage. If that
         // fails, attempt to load the embeddings as non-viewable
         // storage.
-        let embeddings = match read_embeddings(path, mmap) {
+        let embeddings = match read_embeddings(&path, mmap) {
             Ok(e) => EmbeddingsWrap::View(e),
-            Err(_) => read_embeddings(path, mmap)
+            Err(_) => read_embeddings(&path, mmap)
                 .map(EmbeddingsWrap::NonView)
                 .map_err(|err| exceptions::PyIOError::new_err(err.to_string()))?,
         };
@@ -70,7 +71,7 @@ impl PyEmbeddings {
     /// Lossy decoding of the words can be toggled through the lossy param.
     #[staticmethod]
     #[args(lossy = false)]
-    fn read_fasttext(path: &str, lossy: bool) -> PyResult<PyEmbeddings> {
+    fn read_fasttext(path: PathBuf, lossy: bool) -> PyResult<PyEmbeddings> {
         if lossy {
             read_non_fifu_embeddings(path, |r| Embeddings::read_fasttext_lossy(r))
         } else {
@@ -83,7 +84,7 @@ impl PyEmbeddings {
     ///
     /// Read embeddings in the floret text format.
     #[staticmethod]
-    fn read_floret_text(path: &str) -> PyResult<PyEmbeddings> {
+    fn read_floret_text(path: PathBuf) -> PyResult<PyEmbeddings> {
         read_non_fifu_embeddings(path, |r| Embeddings::read_floret_text(r))
     }
 
@@ -98,7 +99,7 @@ impl PyEmbeddings {
     /// Lossy decoding of the words can be toggled through the lossy param.
     #[staticmethod]
     #[args(lossy = false)]
-    fn read_text(path: &str, lossy: bool) -> PyResult<PyEmbeddings> {
+    fn read_text(path: PathBuf, lossy: bool) -> PyResult<PyEmbeddings> {
         if lossy {
             read_non_fifu_embeddings(path, |r| Embeddings::read_text_lossy(r))
         } else {
@@ -120,7 +121,7 @@ impl PyEmbeddings {
     /// Lossy decoding of the words can be toggled through the lossy param.
     #[staticmethod]
     #[args(lossy = false)]
-    fn read_text_dims(path: &str, lossy: bool) -> PyResult<PyEmbeddings> {
+    fn read_text_dims(path: PathBuf, lossy: bool) -> PyResult<PyEmbeddings> {
         if lossy {
             read_non_fifu_embeddings(path, |r| Embeddings::read_text_dims_lossy(r))
         } else {
@@ -136,7 +137,7 @@ impl PyEmbeddings {
     /// Lossy decoding of the words can be toggled through the lossy param.
     #[staticmethod]
     #[args(lossy = false)]
-    fn read_word2vec(path: &str, lossy: bool) -> PyResult<PyEmbeddings> {
+    fn read_word2vec(path: PathBuf, lossy: bool) -> PyResult<PyEmbeddings> {
         if lossy {
             read_non_fifu_embeddings(path, |r| Embeddings::read_word2vec_binary_lossy(r))
         } else {
@@ -474,13 +475,13 @@ impl PyEmbeddings {
         Self::similarity_results(py, results)
     }
 
-    /// write(self, filename)
+    /// write(self, path)
     /// --
     ///
     /// Write the embeddings to a finalfusion file.
-    fn write(&self, filename: &str) -> PyResult<()> {
+    fn write(&self, path: PathBuf) -> PyResult<()> {
         let embeddings = self.embeddings.read().unwrap();
-        let f = File::create(filename)?;
+        let f = File::create(path)?;
         let mut writer = BufWriter::new(f);
         embeddings.write_embeddings(&mut writer)
     }
@@ -611,7 +612,7 @@ impl PyIterProtocol for PyEmbeddings {
 }
 
 fn read_embeddings<S>(
-    path: &str,
+    path: impl AsRef<Path>,
     mmap: bool,
 ) -> finalfusion::error::Result<Embeddings<VocabWrap, S>>
 where
@@ -631,16 +632,20 @@ where
     Ok(embeddings)
 }
 
-fn read_non_fifu_embeddings<R, V>(path: &str, read_embeddings: R) -> PyResult<PyEmbeddings>
+fn read_non_fifu_embeddings<R, V>(
+    path: impl AsRef<Path>,
+    read_embeddings: R,
+) -> PyResult<PyEmbeddings>
 where
     R: FnOnce(&mut BufReader<File>) -> finalfusion::error::Result<Embeddings<V, NdArray>>,
     V: Vocab,
     Embeddings<VocabWrap, StorageViewWrap>: From<Embeddings<V, NdArray>>,
 {
-    let f = File::open(path).map_err(|err| {
+    let f = File::open(&path).map_err(|err| {
         exceptions::PyIOError::new_err(format!(
             "Cannot read text embeddings from '{}': {}'",
-            path, err
+            path.as_ref().to_string_lossy(),
+            err
         ))
     })?;
     let mut reader = BufReader::new(f);
@@ -648,7 +653,8 @@ where
     let embeddings = read_embeddings(&mut reader).map_err(|err| {
         exceptions::PyIOError::new_err(format!(
             "Cannot read text embeddings from '{}': {}'",
-            path, err
+            path.as_ref().to_string_lossy(),
+            err
         ))
     })?;
 
