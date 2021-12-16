@@ -1,6 +1,6 @@
 [package]
 name = "snakefusion"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Daniël de Kok <me@danieldk.eu>"]
 edition = "2018"
 description = "Read and use many word embedding formats"
