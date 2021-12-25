@@ -173,7 +173,7 @@ impl PyEmbeddings {
     ///
     /// This returns words for the analogy query *w1* is to *w2*
     /// as *w3* is to ?.
-    #[args(limit = 10, mask = "(true, true, true)")]
+    #[args(limit = 10, mask = "(true, true, true)", batch_size = "None")]
     fn analogy(
         &self,
         py: Python,
@@ -182,6 +182,7 @@ impl PyEmbeddings {
         word3: &str,
         limit: usize,
         mask: (bool, bool, bool),
+        batch_size: Option<usize>,
     ) -> PyResult<Vec<PyObject>> {
         let embeddings = self.embeddings.read().unwrap();
 
@@ -193,7 +194,12 @@ impl PyEmbeddings {
 
         let results = py
             .allow_threads(|| {
-                embeddings.analogy_masked([word1, word2, word3], [mask.0, mask.1, mask.2], limit)
+                embeddings.analogy_masked(
+                    [word1, word2, word3],
+                    [mask.0, mask.1, mask.2],
+                    limit,
+                    batch_size,
+                )
             })
             .map_err(|lookup| {
                 let failed = [word1, word2, word3]
@@ -420,8 +426,14 @@ impl PyEmbeddings {
     /// --
     ///
     /// Perform a similarity query.
-    #[args(limit = 10)]
-    fn word_similarity(&self, py: Python, word: &str, limit: usize) -> PyResult<Vec<PyObject>> {
+    #[args(limit = 10, batch_size = "None")]
+    fn word_similarity(
+        &self,
+        py: Python,
+        word: &str,
+        limit: usize,
+        batch_size: Option<usize>,
+    ) -> PyResult<Vec<PyObject>> {
         let embeddings = self.embeddings.read().unwrap();
 
         let embeddings = embeddings.view().ok_or_else(|| {
@@ -431,7 +443,7 @@ impl PyEmbeddings {
         })?;
 
         let results = py
-            .allow_threads(|| embeddings.word_similarity(word, limit))
+            .allow_threads(|| embeddings.word_similarity(word, limit, batch_size))
             .ok_or_else(|| exceptions::PyKeyError::new_err("Unknown word and n-grams"))?;
 
         Self::similarity_results(py, results)
@@ -442,13 +454,14 @@ impl PyEmbeddings {
     ///
     /// Perform a similarity query based on a query embedding. ``skip``
     /// specifies the set of words that should never be returned.
-    #[args(limit = 10, skip = "Skips(HashSet::new())")]
+    #[args(limit = 10, skip = "Skips(HashSet::new())", batch_size = "None")]
     fn embedding_similarity(
         &self,
         py: Python,
         embedding: PyEmbedding,
         skip: Skips,
         limit: usize,
+        batch_size: Option<usize>,
     ) -> PyResult<Vec<PyObject>> {
         let embeddings = self.embeddings.read().unwrap();
 
@@ -469,7 +482,9 @@ impl PyEmbeddings {
         }
 
         let results = py
-            .allow_threads(|| embeddings.embedding_similarity_masked(embedding, limit, &skip.0))
+            .allow_threads(|| {
+                embeddings.embedding_similarity_masked(embedding, limit, &skip.0, batch_size)
+            })
             .ok_or_else(|| exceptions::PyKeyError::new_err("Unknown word and n-grams"))?;
 
         Self::similarity_results(py, results)

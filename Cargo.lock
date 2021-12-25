@@ -172,9 +172,8 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
 name = "finalfusion"
-version = "0.17.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "896a994a7a86ff88f0c1b449d8f4c0cd836b83d172836d2d9ce90e9e7a3cd80b"
+version = "0.17.1"
+source = "git+https://github.com/finalfusion/finalfusion-rust.git?rev=56de5425287a3bee5d1347e87a64d83dc4101e50#56de5425287a3bee5d1347e87a64d83dc4101e50"
 dependencies = [
  "byteorder",
  "fnv",

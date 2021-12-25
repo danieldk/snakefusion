@@ -26,7 +26,7 @@ features = ["extension-module", "abi3", "abi3-py36"]
 
 [dependencies]
 itertools = "0.10"
-finalfusion = "0.17.2"
+finalfusion = {git = "https://github.com/finalfusion/finalfusion-rust.git", rev = "56de5425287a3bee5d1347e87a64d83dc4101e50"}
 ndarray = "0.15"
 numpy = "0.15"
 pyo3-log = "0.5"
